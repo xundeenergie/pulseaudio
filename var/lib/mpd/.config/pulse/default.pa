@@ -1,0 +1,45 @@
+#### Automatically load driver modules depending on the hardware available
+#.ifexists module-udev-detect.so
+#load-module module-udev-detect
+#.else
+#### Use the static hardware detection module (for systems that lack udev support)
+#load-module module-detect
+#.endif
+
+load-module module-native-protocol-unix
+#load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1
+load-module module-suspend-on-idle timeout=1
+
+#load-module module-tunnel-sink sink_name=mpd_tunnel server=tcp:127.0.0.1:4713 sink=alsa_output.pci-0000_00_1b.0.analog-stereo
+
+### Load the RTP sender module (also configured via paprefs, see above)
+load-module module-rtp-recv sap_address=127.0.0.1
+load-module module-null-sink sink_name=rtp_local sink_properties="device.description='RTP Unicast Sink localhost'" 
+.nofail
+#load-module module-rtp-send source=rtp.monitor loop=1 destination_ip=127.0.0.1 port=46998 rate=44100 channels=2
+load-module module-rtp-send source=rtp_local.monitor loop=1 destination_ip=127.0.0.1 port=46998 channels=2
+.fail
+
+.nofail
+load-module module-null-sink sink_name=rtp_lan sink_properties="device.description='RTP Multicast Sink LAN'"
+.nofail
+load-module module-rtp-send source=rtp_lan.monitor channels=2
+
+#load-module module-null-sink sink_name=rtp  sink_properties="device.description='RTP Multicast Sink'"
+#load-module module-null-sink sink_name=rtp format=s16be channels=2 rate=44100 description="RTP Multicast Sink"
+#load-module module-null-sink sink_name=rtp channels=2 rate=44100 sink_properties="device.description='RTP Multicast Sink'"
+#load-module module-rtp-send source=rtp.monitor loop=1 sink=combined sink_properties="device.description='RTP Multicast Sink'"
+#load-module module-rtp-send source=rtp.monitor loop=1
+
+#set-default-sink rtp
+
+load-module module-zeroconf-publish
+
+### Load additional modules from GConf settings. This can be configured with the paprefs tool.
+### Please keep in mind that the modules configured by paprefs might conflict with manually
+### loaded modules.
+#.ifexists module-gconf.so
+#.nofail
+#load-module module-gconf
+#.fail
+#.endif
